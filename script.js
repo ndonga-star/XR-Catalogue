@@ -6,19 +6,109 @@ const app=document.querySelector("#app"),modal=document.querySelector("#modal"),
 document.querySelector("#year").textContent=new Date().getFullYear();
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 const yl=l=>l.yearFrom===l.yearTo?`Year ${l.yearFrom}`:`Years ${l.yearFrom}–${l.yearTo}`;
-function get(){let r=location.hash.slice(1)||"home",i=r.indexOf("?"),p=new URLSearchParams(i<0?"":r.slice(i+1));return [i<0?r:r.slice(0,i),p]}
-function go(path,o={}){let q=new URLSearchParams(Object.entries(o).filter(([,v])=>v));location.hash=path+(q.toString()?"?"+q:"");scrollTo(0,0)}
-function filters(){let p=get()[1];return{q:p.get("q")||"",subject:p.get("subject")||"",curriculum:p.get("curriculum")||"",term:p.get("term")||"",format:p.get("format")||"",band:p.get("band")||""}}
-function matches(f){let b=BANDS.find(x=>x[0]===f.band),q=f.q.toLowerCase().trim();return lessons.filter(l=>(!f.subject||l.subject===f.subject)&&(!f.curriculum||l.curriculum===f.curriculum)&&(!f.term||l.term===f.term)&&(!f.format||l.formats.includes(f.format))&&(!b||l.yearTo>=b[1]&&l.yearFrom<=b[2])&&(!q||(l.title+" "+l.summary+" "+l.learningPoints.join(" ")).toLowerCase().includes(q)))}
-function pillGroup(title,opts,key,f){return `<div class="filter-group"><p class="eyebrow">${title}</p><div class="filter-options">${opts.map(o=>`<button class="filter-pill ${f[key]===o?"active":""}" onclick="toggle('${key}',${JSON.stringify(o)})">${esc(o)}</button>`).join("")}</div></div>`}
-function toggle(k,v){let f=filters();f[k]=f[k]===v?"":v;go("library",f)}
-function card(l){return `<article class="lesson-card" onclick="openLesson('${l.id}')"><div class="lesson-top"><span class="tag">${esc(l.subject)}</span><span class="tag ${l.status.includes("Ready")?"ready":"production"}">${esc(l.status)}</span></div><h3>${esc(l.title)}</h3><div class="lesson-meta">${esc(yl(l))} · ${esc(l.curriculum)} · ${esc(l.term)}${l.month?" · "+esc(l.month):""}</div><p class="lesson-summary">${esc(l.summary)}</p><div class="format-list">${l.formats.map(x=>`<span class="format">${esc(x)}</span>`).join("")}</div></article>`}
-function home(){let n=lessons.length;return `<section class="hero"><div class="container hero-grid"><div><p class="eyebrow">Cambridge science · Years 3–13</p><h1>See exactly what your class can step into.</h1><p class="hero-copy">A teacher-facing catalogue of immersive science lessons. Every entry tells you the topic, curriculum, year group and term, so planning a headset lesson takes minutes, not meetings.</p><div class="actions"><button class="btn primary" onclick="go('library')">Browse the library</button><button class="btn" onclick="go('curriculum')">View curriculum map</button></div><div class="stats"><div class="stat"><strong>${n}</strong><span>Lessons catalogued</span></div><div class="stat"><strong>3</strong><span>Science subjects</span></div><div class="stat"><strong>4</strong><span>Cambridge stages</span></div></div></div><div class="hero-media" id="heroMedia"><video class="video-bg" autoplay muted loop playsinline src="assets/Kicc Tour.mp4"></video><div class="video-overlay"></div><img src="assets/hero-classroom.jpg" alt="Students using VR headsets in a science lesson"></div></div></section><section class="section container"><div class="section-head"><div><p class="eyebrow">Catalogues</p><h2>Start with a subject</h2></div><button class="text-link" onclick="go('library')">See everything</button></div><div class="subject-grid">${SUBJECTS.map(s=>{let a=lessons.filter(l=>l.subject===s);return `<button class="subject-card" onclick="go('library',{subject:${JSON.stringify(s)}})" style="text-align:left"><img src="${IMG[s]}" alt="${s} immersive lessons"><div class="subject-body"><h3>${s}</h3><p>${a.length} lessons · Years ${Math.min(...a.map(x=>x.yearFrom))}–${Math.max(...a.map(x=>x.yearTo))}</p><div class="subject-link">Open catalogue →</div></div></button>`}).join("")}</div></section><section class="sand"><div class="section container"><p class="eyebrow">By curriculum stage</p><h2>Mapped to the stage you teach</h2><div class="stage-grid">${CURRICULA.map(c=>`<button class="stage-card" onclick="go('library',{curriculum:${JSON.stringify(c)}})" style="text-align:left"><h3>${c}</h3><p>${lessons.filter(l=>l.curriculum===c).length} lessons</p></button>`).join("")}</div></div></section><section class="section container"><p class="eyebrow">How it works</p><h2>From scheme of work to headset</h2><div class="steps"><div class="step"><b>01</b><h3>Browse the catalogue</h3><p>Filter by subject, year group, term and delivery format to find lessons that match your planning.</p></div><div class="step"><b>02</b><h3>Pick your lessons</h3><p>Each entry lists the topic, curriculum stage and learning points learners will cover.</p></div><div class="step"><b>03</b><h3>We set up the classroom</h3><p>Headsets, content packs and teacher onboarding are configured so the lesson runs on the day.</p></div></div></section><section class="container"><div class="dark-cta"><h2>Bring the catalogue into your classroom</h2><p>Tell us the year groups and topics you teach and we will configure the headsets and run the first session.</p><button class="btn accent" onclick="go('access')">Get set up</button></div></section>`}
-function library(){let f=filters(),a=matches(f),active=Object.values(f).some(Boolean);return `<div class="container"><section class="page-intro"><p class="eyebrow">Library</p><h1>Every immersive lesson, filtered your way</h1><p>Choose a subject, stage, year band or term to see what your learners can experience in the headset.</p></section><div class="library-layout"><aside class="filters"><input class="search" id="search" placeholder="Search topics…" value="${esc(f.q)}" onkeydown="if(event.key==='Enter')search(this.value)"><div class="filter-group"><button class="btn" style="width:100%" onclick="search(document.querySelector('#search').value)">Search</button></div>${pillGroup("Subject",SUBJECTS,"subject",f)}${pillGroup("Curriculum",CURRICULA,"curriculum",f)}${pillGroup("Year group",BANDS.map(x=>x[0]),"band",f)}${pillGroup("Term",TERMS,"term",f)}${pillGroup("Format",FORMATS,"format",f)}${active?`<button class="clear" onclick="go('library')">Clear all filters</button>`:""}</aside><section><p class="result-count">${a.length} lesson${a.length===1?"":"s"}</p>${a.length?SUBJECTS.map(s=>{let g=a.filter(l=>l.subject===s);return g.length?`<div class="subject-section"><h2>${s}</h2><div class="lesson-grid">${g.map(card).join("")}</div></div>`:""}).join(""):`<div class="empty">No lessons match these filters yet.</div>`}</section></div></div>`}
-function search(v){let f=filters();f.q=v;go("library",f)}
-function curriculum(){return `<div class="container"><section class="page-intro"><p class="eyebrow">Curriculum map</p><h1>What sits in the headset, term by term</h1><p>Every lesson placed against its subject, term and year group, so you can plan immersive sessions alongside your existing scheme of work.</p></section>${TERMS.map(t=>`<section class="curriculum-term"><h2>${t}</h2><div class="curriculum-grid">${SUBJECTS.map(s=>{let a=lessons.filter(l=>l.term===t&&l.subject===s);return `<div class="curriculum-subject"><p class="eyebrow">${s}</p>${a.length?`<ul>${a.map(l=>`<li><strong>${esc(l.title)}</strong><small>${esc(yl(l))} · ${esc(l.curriculum)}${l.month?" · "+esc(l.month):""}</small></li>`).join("")}</ul>`:`<p style="color:var(--muted);font-size:13px">No lessons scheduled.</p>`}</div>`}).join("")}</div></section>`).join("")}<div class="dark-cta" style="margin:55px 0 80px"><h2>Want the detail behind a lesson?</h2><p>Open the library to filter by subject, stage, year band and delivery format.</p><button class="btn accent" onclick="go('library')">Browse the library</button></div></div>`}
+function get(){
+  const raw=location.hash.slice(1)||"home";
+  const i=raw.indexOf("?");
+  const path=(i<0?raw:raw.slice(0,i))||"home";
+  const params=new URLSearchParams(i<0?"":raw.slice(i+1));
+  return [path,params];
+}
+function go(path, options={}){
+  const params=new URLSearchParams();
+  Object.entries(options).forEach(([key,value])=>{
+    if(value!==undefined && value!==null && String(value)!=="") params.set(key,String(value));
+  });
+  const target=path+(params.toString()?"?"+params.toString():"");
+  if(location.hash.slice(1)===target){ render(); }
+  else { location.hash=target; }
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function filters(){
+  const p=get()[1];
+  return {
+    q:p.get("q")||"",
+    subject:p.get("subject")||"",
+    curriculum:p.get("curriculum")||"",
+    term:p.get("term")||"",
+    format:p.get("format")||"",
+    band:p.get("band")||""
+  };
+}
+function matches(f){
+  const band=BANDS.find(x=>x[0]===f.band);
+  const q=f.q.toLowerCase().trim();
+  return lessons.filter(l=>
+    (!f.subject || l.subject===f.subject) &&
+    (!f.curriculum || l.curriculum===f.curriculum) &&
+    (!f.term || l.term===f.term) &&
+    (!f.format || l.formats.includes(f.format)) &&
+    (!band || (l.yearTo>=band[1] && l.yearFrom<=band[2])) &&
+    (!q || (l.title+" "+l.summary+" "+l.learningPoints.join(" ")).toLowerCase().includes(q))
+  );
+}
+function pillGroup(title,opts,key,f){
+  return `<div class="filter-group"><p class="eyebrow">${esc(title)}</p><div class="filter-options">${opts.map(o=>`<button type="button" class="filter-pill ${f[key]===o?"active":""}" data-action="filter" data-key="${esc(key)}" data-value="${esc(o)}">${esc(o)}</button>`).join("")}</div></div>`;
+}
+function toggle(k,v){
+  const f=filters();
+  f[k]=f[k]===v?"":v;
+  go("library",f);
+}
+function card(l){
+  return `<article class="lesson-card" data-action="lesson" data-id="${esc(l.id)}" tabindex="0" role="button" aria-label="Open ${esc(l.title)}"><div class="lesson-top"><span class="tag">${esc(l.subject)}</span><span class="tag ${l.status.includes("Ready")?"ready":"production"}">${esc(l.status)}</span></div><h3>${esc(l.title)}</h3><div class="lesson-meta">${esc(yl(l))} · ${esc(l.curriculum)} · ${esc(l.term)}${l.month?" · "+esc(l.month):""}</div><p class="lesson-summary">${esc(l.summary)}</p><div class="format-list">${l.formats.map(x=>`<span class="format">${esc(x)}</span>`).join("")}</div></article>`;
+}
+function home(){
+  const n=lessons.length;
+  return `<section class="hero"><div class="container hero-grid"><div><p class="eyebrow">Cambridge science · Years 3–13</p><h1>See exactly what your class can step into.</h1><p class="hero-copy">A teacher-facing catalogue of immersive science lessons. Every entry tells you the topic, curriculum, year group and term — so planning a headset lesson takes minutes, not meetings.</p><div class="actions"><button type="button" class="btn primary" data-action="navigate" data-path="library">Browse the library</button><button type="button" class="btn" data-action="navigate" data-path="curriculum">View curriculum map</button></div><div class="stats"><div class="stat"><strong>${n}</strong><span>Lessons catalogued</span></div><div class="stat"><strong>3</strong><span>Science subjects</span></div><div class="stat"><strong>4</strong><span>Cambridge stages</span></div></div></div><div class="hero-media" id="heroMedia"><video class="video-bg" autoplay muted loop playsinline preload="metadata" src="assets/Kicc Tour.mp4"></video><div class="video-overlay"></div><img src="assets/hero-classroom.jpg" alt="Students using VR headsets in a science lesson"></div></div></section><section class="section container"><div class="section-head"><div><p class="eyebrow">Catalogues</p><h2>Start with a subject</h2></div><button type="button" class="text-link" data-action="navigate" data-path="library">See everything</button></div><div class="subject-grid">${SUBJECTS.map(s=>{let a=lessons.filter(l=>l.subject===s);return `<button type="button" class="subject-card" data-action="filter-nav" data-key="subject" data-value="${esc(s)}" style="text-align:left"><img src="${IMG[s]}" alt="${esc(s)} immersive lessons"><div class="subject-body"><h3>${esc(s)}</h3><p>${a.length} lessons · Years ${Math.min(...a.map(x=>x.yearFrom))}–${Math.max(...a.map(x=>x.yearTo))}</p><div class="subject-link">Open catalogue →</div></div></button>`}).join("")}</div></section><section class="sand"><div class="section container"><p class="eyebrow">By curriculum stage</p><h2>Mapped to the stage you teach</h2><div class="stage-grid">${CURRICULA.map(c=>`<button type="button" class="stage-card" data-action="filter-nav" data-key="curriculum" data-value="${esc(c)}" style="text-align:left"><h3>${esc(c)}</h3><p>${lessons.filter(l=>l.curriculum===c).length} lessons</p></button>`).join("")}</div></div></section><section class="section container"><p class="eyebrow">How it works</p><h2>From scheme of work to headset</h2><div class="steps"><div class="step"><b>01</b><h3>Browse the catalogue</h3><p>Filter by subject, year group, term and delivery format to find lessons that match your planning.</p></div><div class="step"><b>02</b><h3>Pick your lessons</h3><p>Each entry lists the topic, curriculum stage and learning points learners will cover.</p></div><div class="step"><b>03</b><h3>We set up the classroom</h3><p>Headsets, content packs and teacher onboarding are configured so the lesson runs on the day.</p></div></div></section><section class="container"><div class="dark-cta"><h2>Bring the catalogue into your classroom</h2><p>Tell us the year groups and topics you teach and we will configure the headsets and run the first session.</p><button type="button" class="btn accent" data-action="navigate" data-path="access">Get set up</button></div></section>`;
+}
+function library(){
+  const f=filters(),a=matches(f),active=Object.values(f).some(Boolean);
+  return `<div class="container"><section class="page-intro"><p class="eyebrow">Library</p><h1>Every immersive lesson, filtered your way</h1><p>Choose a subject, stage, year band or term to see what your learners can experience in the headset.</p></section><div class="library-layout"><aside class="filters"><input class="search" id="search" placeholder="Search topics…" value="${esc(f.q)}"><div class="filter-group"><button type="button" class="btn" style="width:100%" data-action="search">Search</button></div>${pillGroup("Subject",SUBJECTS,"subject",f)}${pillGroup("Curriculum",CURRICULA,"curriculum",f)}${pillGroup("Year group",BANDS.map(x=>x[0]),"band",f)}${pillGroup("Term",TERMS,"term",f)}${pillGroup("Format",FORMATS,"format",f)}${active?`<button type="button" class="clear" data-action="clear">Clear all filters</button>`:""}</aside><section><p class="result-count">${a.length} lesson${a.length===1?"":"s"}</p>${a.length?SUBJECTS.map(s=>{let g=a.filter(l=>l.subject===s);return g.length?`<div class="subject-section"><h2>${s}</h2><div class="lesson-grid">${g.map(card).join("")}</div></div>`:""}).join(""):`<div class="empty">No lessons match these filters yet.</div>`}</section></div></div>`;
+}
+function search(v){const f=filters();f.q=v;go("library",f)}
+function curriculum(){
+  return `<div class="container"><section class="page-intro"><p class="eyebrow">Curriculum map</p><h1>What sits in the headset, term by term</h1><p>Every lesson placed against its subject, term and year group, so you can plan immersive sessions alongside your existing scheme of work.</p></section>${TERMS.map(t=>`<section class="curriculum-term"><h2>${t}</h2><div class="curriculum-grid">${SUBJECTS.map(s=>{let a=lessons.filter(l=>l.term===t&&l.subject===s);return `<div class="curriculum-subject"><p class="eyebrow">${s}</p>${a.length?`<ul>${a.map(l=>`<li><strong>${esc(l.title)}</strong><small>${esc(yl(l))} · ${esc(l.curriculum)}${l.month?" · "+esc(l.month):""}</small></li>`).join("")}</ul>`:`<p style="color:var(--muted);font-size:13px">No lessons scheduled.</p>`}</div>`}).join("")}</div></section>`).join("")}<div class="dark-cta" style="margin:55px 0 80px"><h2>Want the detail behind a lesson?</h2><p>Open the library to filter by subject, stage, year band and delivery format.</p><button type="button" class="btn accent" data-action="navigate" data-path="library">Browse the library</button></div></div>`;
+}
 function access(){return `<div class="container"><section class="page-intro"><p class="eyebrow">Get set up</p><h1>Bring the catalogue into your classroom</h1><p>Experience sources, headset content packs and platform setup are provided as part of a licensed deployment. Tell us what you teach and we'll prepare the session.</p></section><div class="access-grid"><section><h2>How a setup runs</h2><div class="access-steps">${["Tell us about your school|Year groups, subjects and how many learners you want in a session.","We map the lessons|We match your scheme of work to the immersive catalogue, term by term.","Headsets and content pack|Devices are prepared with the licensed experiences already loaded and tested.","Guided first session|We run the first lesson with your class and train teachers to run the rest."].map((x,i)=>{let[a,b]=x.split("|");return `<div class="access-step"><span class="circle">${i+1}</span><div><strong>${a}</strong><p>${b}</p></div></div>`}).join("")}</div></section><aside class="form-card" id="request-card"><h2>Request a session</h2><form id="request-form"><div class="field"><label class="eyebrow">Your name</label><input name="name" required></div><div class="field"><label class="eyebrow">School</label><input name="school" required></div><div class="field"><label class="eyebrow">Email</label><input name="email" type="email" required></div><div class="field"><label class="eyebrow">Year groups</label><input name="years" placeholder="e.g. Years 7–9" required></div><div class="field"><label class="eyebrow">What would you like to teach?</label><textarea name="notes" rows="4"></textarea></div><button class="btn primary" type="submit">Send request</button></form></aside></div></div>`}
-function openLesson(id){let l=lessons.find(x=>x.id===id);mc.innerHTML=`<p class="eyebrow">${esc(l.subject)} · ${esc(l.status)}</p><h2>${esc(l.title)}</h2><p class="modal-meta">${esc(yl(l))} · ${esc(l.curriculum)} · ${esc(l.term)}${l.month?" · "+esc(l.month):""}</p><div class="format-list">${l.formats.map(x=>`<span class="format">${esc(x)}</span>`).join("")}</div><p>${esc(l.summary)}</p><div class="learning"><h3>Learning points</h3><ul>${l.learningPoints.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div><button class="btn primary" onclick="closeModal();go('access')">Request this experience</button>`;modal.hidden=false}
-function closeModal(){modal.hidden=true} modal.onclick=e=>{if(e.target.dataset.close!==undefined)closeModal()};document.onkeydown=e=>{if(e.key==="Escape")closeModal()};
-function render(){let [p]=get();app.innerHTML=p==="library"?library():p==="curriculum"?curriculum():p==="access"?access():home();document.querySelector(".menu-btn")?.addEventListener("click",()=>document.querySelector(".nav-wrap").classList.toggle("menu-open"));if(p==="access")document.querySelector("#request-form").onsubmit=e=>{e.preventDefault();document.querySelector("#request-card").innerHTML='<div class="success"><h2>Request received</h2><p>Your request has been captured in this demo. Connect the form to your preferred email/CRM service before going live.</p></div>'};if(p==="home"){let v=document.querySelector(".video-bg");v?.addEventListener("loadeddata",()=>document.querySelector("#heroMedia").classList.add("has-video"))}}
-addEventListener("hashchange",render);render();
+function openLesson(id){
+  const l=lessons.find(x=>x.id===id);
+  if(!l)return;
+  mc.innerHTML=`<p class="eyebrow">${esc(l.subject)} · ${esc(l.status)}</p><h2>${esc(l.title)}</h2><p class="modal-meta">${esc(yl(l))} · ${esc(l.curriculum)} · ${esc(l.term)}${l.month?" · "+esc(l.month):""}</p><div class="format-list">${l.formats.map(x=>`<span class="format">${esc(x)}</span>`).join("")}</div><p>${esc(l.summary)}</p><div class="learning"><h3>Learning points</h3><ul>${l.learningPoints.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div><button type="button" class="btn primary" data-action="request-experience">Request this experience</button>`;
+  modal.hidden=false;
+}
+function closeModal(){modal.hidden=true}
+function render(){
+  const [p]=get();
+  app.innerHTML=p==="library"?library():p==="curriculum"?curriculum():p==="access"?access():home();
+  const menu=document.querySelector(".menu-btn");
+  if(menu)menu.onclick=()=>document.querySelector(".nav-wrap").classList.toggle("menu-open");
+  const form=document.querySelector("#request-form");
+  if(form)form.onsubmit=e=>{e.preventDefault();document.querySelector("#request-card").innerHTML='<div class="success"><h2>Request received</h2><p>Your request has been captured in this demo. Connect the form to your preferred email/CRM service before going live.</p></div>'};
+  const video=document.querySelector(".video-bg");
+  if(video){
+    const showVideo=()=>document.querySelector("#heroMedia")?.classList.add("has-video");
+    video.addEventListener("loadeddata",showVideo,{once:true});
+    if(video.readyState>=2)showVideo();
+  }
+}
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-action]");
+  if(!el)return;
+  const action=el.dataset.action;
+  if(action==="navigate")go(el.dataset.path||"home");
+  else if(action==="filter")toggle(el.dataset.key,el.dataset.value);
+  else if(action==="filter-nav")go("library",{[el.dataset.key]:el.dataset.value});
+  else if(action==="lesson")openLesson(el.dataset.id);
+  else if(action==="search")search(document.querySelector("#search")?.value||"");
+  else if(action==="clear")go("library");
+  else if(action==="request-experience"){closeModal();go("access")}
+});
+document.addEventListener("keydown",e=>{
+  const el=e.target.closest("[data-action='lesson']");
+  if(el && (e.key==="Enter"||e.key===" ")){e.preventDefault();openLesson(el.dataset.id)}
+  if(e.key==="Escape")closeModal();
+});
+modal.addEventListener("click",e=>{if(e.target.dataset.close!==undefined)closeModal()});
+window.addEventListener("hashchange",render);
+document.querySelector("#year").textContent=new Date().getFullYear();
+render();
